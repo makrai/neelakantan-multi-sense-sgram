@@ -18,7 +18,7 @@ class VocabBuilder(vocab_hash_size: Int = 20e6.toInt, sampling_table_size: Int =
 
   // assign internal params 
   private val rng = new Random(5) // fix the seed
-  private var train_words = 0
+  private var train_words: Long = 0
   private var prev_vocab_size = 0
 
   // allocate data structures

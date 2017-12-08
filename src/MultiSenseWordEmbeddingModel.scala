@@ -63,8 +63,8 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
   // Component-1
   def buildVocab(minFreq: Int = 5): Unit = {
     vocab = new VocabBuilder(vocabHashSize, samplingTableSize, 0.7) // 0.7 is the load factor 
-    println("Building Vocab")
     if (loadVocabFilename.size == 0) {
+      println("Building Vocab")
       val corpusLineItr = corpus.endsWith(".gz") match {
         case true  => io.Source.fromInputStream(new GZIPInputStream(new FileInputStream(corpus)), encoding).getLines
         case false => io.Source.fromInputStream(new FileInputStream(corpus), encoding).getLines
@@ -74,7 +74,10 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
        line.stripLineEnd.split(' ').foreach(word => vocab.addWordToVocab(word.toLowerCase())) 
       }
     }
-    else vocab.loadVocab(loadVocabFilename, encoding)
+    else {
+      println("Loading Vocab")
+      vocab.loadVocab(loadVocabFilename, encoding)
+    }
     
     vocab.sortVocab(minCount, ignoreStopWords, maxVocabSize)  // removes words whose count is less than minCount and sorts by frequency
     vocab.buildSamplingTable() // for getting random word from vocab in O(1) otherwise would O(log |V|)
@@ -107,6 +110,8 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
         for (v <- 0 until learnTopV)
           learnMultiVec(v) = true
      }
+     println("learnMV(1999): " + learnMultiVec(1999))
+     println("learnMV(2000): " + learnMultiVec(2000))
   }
 
   // Component-2
@@ -119,6 +124,8 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
     for (v <- 0 until V) {
       if (dpmeans == 1) {
         ncluster(v) = 1
+        // Nemeskey modified the line above to
+        // ncluster(v) = if (learnMultiVec(v)) S else 1
       } else {
         ncluster(v) = if (learnMultiVec(v)) S else 1
       }
@@ -140,6 +147,8 @@ abstract class MultiSenseWordEmbeddingModel(val opts: EmbeddingOpts) extends Par
     println("Initialized Parameters: ")
     println(println("Total memory available to JVM (bytes): " + 
         Runtime.getRuntime().totalMemory()))
+    println("len(sense_weights) == " + sense_weights.size + ", weights: " + sense_weights(0).size)
+    println("len(global_weights) == " + global_weights.size)
         
     val files = (0 until threads).map(i => i)
     Threading.parForeach(files, threads)(workerThread(_))
